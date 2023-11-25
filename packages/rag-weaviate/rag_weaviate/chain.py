@@ -1,13 +1,12 @@
 import os
 
+import weaviate
 from langchain.chat_models import ChatOpenAI
-from langchain.document_loaders import WebBaseLoader
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.prompts import ChatPromptTemplate
 from langchain.pydantic_v1 import BaseModel
 from langchain.schema.output_parser import StrOutputParser
 from langchain.schema.runnable import RunnableParallel, RunnablePassthrough
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import Weaviate
 
 if os.environ.get("WEAVIATE_API_KEY", None) is None:
@@ -18,22 +17,14 @@ if os.environ.get("WEAVIATE_ENVIRONMENT", None) is None:
 
 WEAVIATE_INDEX_NAME = os.environ.get("WEAVIATE_INDEX", "langchain-test")
 
-### Ingest code - you may need to run this the first time
-# Load
-loader = WebBaseLoader("https://lilianweng.github.io/posts/2023-06-23-agent/")
-data = loader.load()
+client = weaviate.Client(
+    url=os.environ["WEAVIATE_ENVIRONMENT"],
+    additional_headers = {
+        "X-OpenAI-Api-Key": os.environ["OPENAI_API_KEY"]
+    }
+)
 
-# # Split
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=0)
-all_splits = text_splitter.split_documents(data)
-
-# # Add to vectorDB
-# vectorstore = Weaviate.from_documents(
-#     documents=all_splits, embedding=OpenAIEmbeddings(), index_name=WEAVIATE_INDEX_NAME
-# )
-# retriever = vectorstore.as_retriever()
-
-vectorstore = Weaviate.from_existing_index(WEAVIATE_INDEX_NAME, OpenAIEmbeddings())
+vectorstore = Weaviate(client, WEAVIATE_INDEX_NAME, text_key="text")
 retriever = vectorstore.as_retriever()
 
 # RAG prompt

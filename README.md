@@ -2,78 +2,61 @@
 
 ## Installation
 
-Install the LangChain CLI if you haven't yet
+This application's scaffolding was created using langchaing-cli with the rag-weaviate template:
 
 ```bash
-pip install -U langchain-cli
+langchain app new my-app --package rag-weaviate
 ```
 
-## Adding packages
+Check the default [README](docs/SCAFFOLDING.md) for more context.
 
-```bash
-# adding packages from 
-# https://github.com/langchain-ai/langchain/tree/master/templates
-langchain app add $PROJECT_NAME
+You don't need to recreate the steps described in the original README. Instead clone this repository and use [docker-compose](https://smallsharpsoftwaretools.com/tutorials/use-colima-to-run-docker-containers-on-macos/) for local development.
 
-# adding custom GitHub repo packages
-langchain app add --repo $OWNER/$REPO
-# or with whole git string (supports other git providers):
-# langchain app add git+https://github.com/hwchase17/chain-of-verification
+### Running the vector DB
 
-# with a custom api mount point (defaults to `/{package_name}`)
-langchain app add $PROJECT_NAME --api_path=/my/custom/path/rag
+You can execute a single local instance of weaviate database by running:
+
+```
+docker compose up weaviate -d
 ```
 
-Note: you remove packages by their api path
+Check for the status of the weaviate service with:
 
-```bash
-langchain app remove my/custom/path/rag
+```
+docker ps -a | grep weaviate
 ```
 
-## Setup LangSmith (Optional)
-LangSmith will help us trace, monitor and debug LangChain applications. 
-LangSmith is currently in private beta, you can sign up [here](https://smith.langchain.com/). 
-If you don't have access, you can skip this section
+The local weaviate service will expose an endpoint in `http://localhost:8080`, so mind the host URL config for instantiating the client:
 
+```
+mport weaviate
+import json
 
-```shell
-export LANGCHAIN_TRACING_V2=true
-export LANGCHAIN_API_KEY=<your-api-key>
-export LANGCHAIN_PROJECT=<your-project>  # if not specified, defaults to "default"
+client = weaviate.Client(
+    url = "http://localhost:8080",  # Replace with your endpoint
+    additional_headers = {
+        "X-OpenAI-Api-Key": "YOUR-OPENAI-API-KEY"  # Replace with your inference API key
+    }
+)
+```
+Check this [section](https://weaviate.io/developers/weaviate/quickstart#can-i-use-another-deployment-method) for more configs.
+
+### Running a Jupyter Notebook
+
+For running a local Jupyter Notebook, please execute from a new terminal session the following command:
+
+```
+docker compose up jupyter
 ```
 
-## Launch LangServe
+This will provide a URL (at the end of the logs) in which you can find the notebook running. The URL usually is `http://127.0.0.1:8888/lab`. If you need to start your notebook with a specific dependency already installed, add the dependency in `notebooks/requirements.txt` before running the docker compose command.
 
-```bash
-langchain serve
+### Running the API
+
+In order to run the web service you can execute:
+
+```
+docker compose up web -d
 ```
 
-## Running in Docker
-
-This project folder includes a Dockerfile that allows you to easily build and host your LangServe app.
-
-### Building the Image
-
-To build the image, you simply:
-
-```shell
-docker build . -t my-langserve-app
-```
-
-If you tag your image with something other than `my-langserve-app`,
-note it for use in the next step.
-
-### Running the Image Locally
-
-To run the image, you'll need to include any environment variables
-necessary for your application.
-
-In the below example, we inject the `OPENAI_API_KEY` environment
-variable with the value set in my local environment
-(`$OPENAI_API_KEY`)
-
-We also expose port 8080 with the `-p 8080:8080` option.
-
-```shell
-docker run -e OPENAI_API_KEY=$OPENAI_API_KEY -p 8080:8080 my-langserve-app
-```
+and go to the playground in `http://127.0.0.1:8000/rag-weaviate/playground/`. Also, the API specs are found in `http://127.0.0.1:8000/docs`.

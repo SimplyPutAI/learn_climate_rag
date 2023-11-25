@@ -1,0 +1,50 @@
+version: '3.4'
+services:
+  weaviate:  # Vector DB
+    image: semitechnologies/weaviate:1.22.5
+    command:
+    - --host
+    - 0.0.0.0
+    - --port
+    - '8080'
+    - --scheme
+    - http
+    ports:
+    - 8080:8080
+    - 50051:50051
+    volumes:
+    - weaviate_data:/var/lib/weaviate
+    restart: on-failure:0
+    environment:
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEFAULT_VECTORIZER_MODULE: 'none'
+      ENABLE_MODULES: 'text2vec-cohere,text2vec-huggingface,text2vec-palm,text2vec-openai,generative-openai,generative-cohere,generative-palm,ref2vec-centroid,reranker-cohere,qna-openai'
+      CLUSTER_HOSTNAME: 'node1'
+  web:
+    build: .
+    command: uvicorn app.server:app --host 0.0.0.0 --port 8000
+    depends_on:
+      - weaviate
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/code
+    environment:
+      WEAVIATE_API_KEY: ${WEAVIATE_API_KEY}
+      WEAVIATE_ENVIRONMENT: http://weaviate:8080
+      WEAVIATE_INDEX: climate_change
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+  jupyter:
+    build:
+      context: ./notebooks
+      dockerfile: notebook.Dockerfile
+    command: "start-notebook.sh --NotebookApp.token="
+    ports:
+      - 8888:8888
+    volumes:
+      - ./notebooks:/home/jovyan/work
+      - ./notebooks/configure_environment.sh:/usr/local/bin/before-notebook.d/configure_environment.sh
+volumes:
+  weaviate_data:
