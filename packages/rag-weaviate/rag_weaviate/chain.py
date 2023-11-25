@@ -1,5 +1,6 @@
 import os
 
+import weaviate
 from langchain.chat_models import ChatOpenAI
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.prompts import ChatPromptTemplate
@@ -16,7 +17,14 @@ if os.environ.get("WEAVIATE_ENVIRONMENT", None) is None:
 
 WEAVIATE_INDEX_NAME = os.environ.get("WEAVIATE_INDEX", "langchain-test")
 
-vectorstore = Weaviate.from_existing_index(WEAVIATE_INDEX_NAME, OpenAIEmbeddings())
+client = weaviate.Client(
+    url=os.environ["WEAVIATE_ENVIRONMENT"],
+    additional_headers = {
+        "X-OpenAI-Api-Key": os.environ["OPENAI_API_KEY"]
+    }
+)
+
+vectorstore = Weaviate(client, WEAVIATE_INDEX_NAME, text_key="text")
 retriever = vectorstore.as_retriever()
 
 # RAG prompt
