@@ -22,5 +22,19 @@ services:
       DEFAULT_VECTORIZER_MODULE: 'none'
       ENABLE_MODULES: 'text2vec-cohere,text2vec-huggingface,text2vec-palm,text2vec-openai,generative-openai,generative-cohere,generative-palm,ref2vec-centroid,reranker-cohere,qna-openai'
       CLUSTER_HOSTNAME: 'node1'
+  web:
+    build: .
+    command: uvicorn app.server:app --host 0.0.0.0 --port 5000
+    depends_on:
+      - weaviate
+    volumes:
+      - .:/code
+    ports:
+      - "5000:5000"
+    environment:
+      WEAVIATE_API_KEY: foo
+      WEAVIATE_ENVIRONMENT: local
+      WEAVIATE_INDEX: climate-change
+
 volumes:
   weaviate_data:
